@@ -3,3 +3,8 @@ mysql-python==1.2.5
 django-taggit==0.18.1
 pytz==2016.4
 python-social-auth==0.2.19
+django-cors-headers==1.1.0
+django-oauth-toolkit==0.10.0
+django-oauth2-provider==0.2.6.1
+djangorestframework==3.3.3
+djangorestframework-oauth==1.1.0
