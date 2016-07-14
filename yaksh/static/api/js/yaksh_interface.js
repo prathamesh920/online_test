@@ -131,7 +131,7 @@ function is_logged_in() {
 }
 
 function get_mcq_design(question, index) {
-    var content = "<p><u>Question :" +index+ "</u></br> " +question.description+ "</p>";
+     var content = "<p><u>Question :" +index+ "</u><b> Mark(s):"+ question.points +"</b></br> " +question.description+ "</p>";
     if (question.type == 'mcq') {
         var name = "mcq"+question.id;
         var type = "radio";
@@ -148,7 +148,7 @@ function get_mcq_design(question, index) {
 }
 
 function get_code_design(question, index) {
-    var content = "<p><u>Question :" +index+ "</u> </br>" +question.description+ "</p>";
+     var content = "<p><u>Question :" +index+ "</u> <b>Mark(s):"+ question.points +"</b> </br>" +question.description+ "</p>";
     content += '<div id="error'+question.id +'" ></div>'
     content += '<textarea id=text'+ question.id +' class="text" placeholder="Write your code here." style="width: 600px;height: 400px;border: 3px solid #cccccc;padding: 5px;"></textarea><br>';
     content += "<button class='check' data-ap="+qp_id+" data-id="+question.id+" data-type=" +question.type+ "> Submit </button>"+ design_logout() +"<hr>";
