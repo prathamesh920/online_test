@@ -1,0 +1,64 @@
+#yaksh {
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding: 20px;
+}
+
+p {
+    width: 600px;
+    border: 1px solid grey;
+    padding: 10px;
+    background-color: #F7F4EC;
+}
+
+.yaksh input[type=text], input[type=password] {
+    width: 50%;
+    padding: 5px 8px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#yaksh input[type=button], button {
+    background-color: #42A4FF;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+input[type=button]:hover, button:hover {
+    background-color: #2582D8;
+}
+
+#yaksh a {
+    font-family: Arial;
+    color: #2F63B1;
+}
+
+
+#yaksh a:hover{
+    color: #091DFA;
+}
+
+.error {
+    width: 50%;
+    border: 1px solid grey;
+    padding: 10px;
+    margin: 30px;
+    background-color: #EB8F78;
+
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+    padding: 15px;
+}
