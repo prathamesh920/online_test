@@ -44,6 +44,7 @@ INSTALLED_APPS = (
     'yaksh',
     'taggit',
     'social.apps.django_app.default',
+    'attendance',
 )
 
 MIDDLEWARE_CLASSES = (

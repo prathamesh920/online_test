@@ -14,6 +14,7 @@ from django.db.models import Sum, Max, Q, F
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.contrib.contenttypes.models import ContentType
 from django.forms.models import inlineformset_factory
 from django.utils import timezone
 from django.core.validators import URLValidator
@@ -52,6 +53,7 @@ from yaksh.forms import (
     LessonFileForm, LearningModuleForm, ExerciseForm
 )
 from yaksh.settings import SERVER_POOL_PORT, SERVER_HOST_NAME 
+from attendance.models import Attendance
 from .settings import URL_ROOT
 from .file_utils import extract_files, is_csv
 from .send_emails import send_user_mail, generate_activation_key, send_bulk_mail
@@ -473,6 +475,15 @@ def start(request, questionpaper_id=None, attempt_num=None, course_id=None,
             return prof_manage(request, msg=msg)
         return view_module(request, module_id=module_id, course_id=course_id,
                            msg=msg)
+
+    if quest_paper.quiz.attendance.exists():
+        attendance = quest_paper.quiz.attendance.get()
+        if not attendance.is_attendee(user):
+            msg = 'Your attendance is not marked.'
+            if is_moderator(user):
+                return prof_manage(request, msg=msg)
+            return quizlist_user(request, msg=msg)
+
     course = Course.objects.get(id=course_id)
     learning_module = course.learning_module.get(id=module_id)
     learning_unit = learning_module.learning_unit.get(quiz=quest_paper.quiz.id)
