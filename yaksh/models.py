@@ -10,6 +10,7 @@ from collections import Counter
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericRelation
 from taggit.managers import TaggableManager
 from django.utils import timezone
 from django.core.files import File
@@ -36,6 +37,8 @@ from yaksh.settings import OUTPUT_DIR, FIXTURES_DIR_PATH
 from yaksh.code_server_settings import SERVER_POOL_PORT, SERVER_HOST_NAME
 from django.forms.models import model_to_dict
 from grades.models import GradingSystem
+from attendance.models import Attendance
+
 
 languages = (
         ("python", "Python"),
@@ -335,6 +338,9 @@ class Quiz(models.Model):
     is_exercise = models.BooleanField(default=False)
 
     creator = models.ForeignKey(User, null=True)
+
+    attendance = GenericRelation(Attendance, content_type_field='activity',
+                                 object_id_field='id_of_activity')
 
     objects = QuizManager()
 
