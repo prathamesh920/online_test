@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.conf import settings
+from yaksh import settings
 from django.template import RequestContext
 
 # Local imports
