@@ -5253,4 +5253,5 @@ class TestLessons(TestCase):
             data=lesson, content_type="application/json"
             )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['data'], '<p>test description</p>')
+        json_data = json.loads(response.content)['data']
+        self.assertEqual(json_data, '<p>test description</p>')
