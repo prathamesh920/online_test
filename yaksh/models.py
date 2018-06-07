@@ -860,7 +860,7 @@ class ConcurrentUser(models.Model):
 ###############################################################################
 class Profile(models.Model):
     """Profile for a user to store roll number and other details."""
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, related_name='yaksh_profile_user')
     roll_number = models.CharField(max_length=20)
     institute = models.CharField(max_length=128)
     department = models.CharField(max_length=64)
@@ -918,7 +918,7 @@ class Question(models.Model):
     snippet = models.TextField(blank=True)
 
     # user for particular question
-    user = models.ForeignKey(User, related_name="user")
+    user = models.ForeignKey(User, related_name="yaksh_question_creator")
 
     # Does this question allow partial grading
     partial_grading = models.BooleanField(default=False)
