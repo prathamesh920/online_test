@@ -23,7 +23,7 @@ install_requires = [
     'psutil',
     'ruamel.yaml==0.15.23',
     'invoke==0.21.0',
-    'six',
+    'six==1.9.0',
     'requests',
     'markdown==2.6.9',
     'python-decouple==3.1',
