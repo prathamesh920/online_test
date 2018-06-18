@@ -7,7 +7,7 @@ from yaksh.forms import ProfileForm
 
 
 def user_has_profile(user):
-    return hasattr(user, 'profile')
+    return hasattr(user, 'yaksh_profile')
 
 
 def has_profile(func):
@@ -21,9 +21,9 @@ def has_profile(func):
         if user_has_profile(request.user):
             return func(request, *args, **kwargs)
         if request.user.groups.filter(name='moderator').exists():
-            template = 'manage.html'
+            template = 'yaksh/manage.html'
         else:
-            template = 'user.html'
+            template = 'yaksh/user.html'
         form = ProfileForm(user=request.user, instance=None)
         context = {'template': template, 'form': form}
         return render(request, 'yaksh/editprofile.html', context)
@@ -42,7 +42,7 @@ def email_verified(func):
         context = {}
         if not settings.IS_DEVELOPMENT:
             if user.is_authenticated() and user_has_profile(user):
-                if not user.profile.is_email_verified:
+                if not user.yaksh_profile.is_email_verified:
                     context['success'] = False
                     context['msg'] = "Your account is not verified. \
                                         Please verify your account"

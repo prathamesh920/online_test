@@ -553,7 +553,7 @@ def start(request, questionpaper_id=None, attempt_num=None, course_id=None,
         return my_render_to_response(request, 'yaksh/intro.html', context)
     else:
         ip = request.META['REMOTE_ADDR']
-        if not hasattr(user, 'profile'):
+        if not hasattr(user, 'yaksh_profile'):
             msg = 'You do not have a profile and cannot take the quiz!'
             raise Http404(msg)
         new_paper = quest_paper.make_answerpaper(user, ip, attempt_number,
@@ -1211,7 +1211,7 @@ def monitor(request, quiz_id=None, course_id=None):
         latest_attempts = []
         papers = AnswerPaper.objects.filter(question_paper=q_paper,
                                             course_id=course_id).order_by(
-            'user__profile__roll_number'
+            'user__yaksh_profile__roll_number'
         )
         users = papers.values_list('user').distinct()
         for auser in users:
@@ -1539,9 +1539,9 @@ def download_quiz_csv(request, course_id, quiz_id):
     writer.writerow(csv_fields)
 
     csv_fields_values = {'name': 'user.get_full_name().title()',
-            'roll_number': 'user.profile.roll_number',
-            'institute': 'user.profile.institute',
-            'department': 'user.profile.department',
+            'roll_number': 'user.yaksh_profile.roll_number',
+            'institute': 'user.yaksh_profile.institute',
+            'department': 'user.yaksh_profile.department',
             'username': 'user.username',
             'marks_obtained': 'answerpaper.marks_obtained',
             'out_of': 'question_paper.total_marks',
@@ -1659,9 +1659,9 @@ def view_profile(request):
     """ view moderators and users profile """
     user = request.user
     if is_moderator(user):
-        template = 'manage.html'
+        template = 'yaksh/manage.html'
     else:
-        template = 'user.html'
+        template = 'yaksh/user.html'
     context = {'template': template, 'user': user}
     return my_render_to_response(request, 'yaksh/view_profile.html', context)
 
@@ -1673,9 +1673,9 @@ def edit_profile(request):
 
     user = request.user
     if is_moderator(user):
-        template = 'manage.html'
+        template = 'yaksh/manage.html'
     else:
-        template = 'user.html'
+        template = 'yaksh/user.html'
     context = {'template': template}
     try:
         profile = Profile.objects.get(user_id=user.id)
@@ -1928,8 +1928,8 @@ def download_course_csv(request, course_id):
     if not course.is_creator(user) and not course.is_teacher(user):
         raise Http404('The question paper does not belong to your course')
     students = course.get_only_students().annotate(
-        roll_number=F('profile__roll_number'),
-        institute=F('profile__institute')
+        roll_number=F('yaksh_profile__roll_number'),
+        institute=F('yaksh_profile__institute')
     ).values(
         "id", "first_name", "last_name",
         "email", "institute", "roll_number"
@@ -2004,14 +2004,14 @@ def new_activation(request, email=None):
                             Please verify your account"
         return render_to_response('yaksh/activation_status.html', context)
 
-    if not user.profile.is_email_verified:
-        user.profile.activation_key = generate_activation_key(user.username)
-        user.profile.key_expiry_time = timezone.now() + \
+    if not user.yaksh_profile.is_email_verified:
+        user.yaksh_profile.activation_key = generate_activation_key(user.username)
+        user.yaksh_profile.key_expiry_time = timezone.now() + \
             timezone.timedelta(minutes=20)
-        user.profile.save()
+        user.yaksh_profile.save()
         new_user_data = User.objects.get(email=email)
         success, msg = send_user_mail(new_user_data.email,
-                                      new_user_data.profile.activation_key
+                                      new_user_data.yaksh_profile.activation_key
                                       )
         if success:
             context['activation_msg'] = msg
