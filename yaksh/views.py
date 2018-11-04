@@ -30,8 +30,8 @@ from yaksh.code_server import get_result as get_result_from_code_server
 from yaksh.models import (
     Answer, AnswerPaper, AssignmentUpload, Course, FileUpload, Profile,
     QuestionPaper, QuestionSet, Quiz, Question, TestCase, User,
-    FIXTURES_DIR_PATH, MOD_GROUP_NAME, Lesson, LessonFile, LearningUnit, LearningModule,
-    CourseStatus
+    FIXTURES_DIR_PATH, MOD_GROUP_NAME, Lesson, LessonFile, LearningUnit,
+    LearningModule, CourseStatus
 )
 from yaksh.forms import (
     UserRegisterForm, UserLoginForm, QuizForm, QuestionForm,
