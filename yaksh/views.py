@@ -28,10 +28,12 @@ import re
 # Local imports.
 from yaksh.code_server import get_result as get_result_from_code_server
 from yaksh.models import (
-    Answer, AnswerPaper, AssignmentUpload, Course, FileUpload, Profile,
-    QuestionPaper, QuestionSet, Quiz, Question, TestCase, User,
-    FIXTURES_DIR_PATH, MOD_GROUP_NAME, Lesson, LessonFile, LearningUnit,
-    LearningModule, CourseStatus
+    Answer, AnswerPaper, AssignmentUpload, Course, FileUpload, FloatTestCase,
+    HookTestCase, IntegerTestCase, McqTestCase, Profile,
+    QuestionPaper, QuestionSet, Quiz, Question, StandardTestCase,
+    StdIOBasedTestCase, StringTestCase, TestCase, User,
+    get_model_class, FIXTURES_DIR_PATH, MOD_GROUP_NAME, Lesson, LessonFile,
+    LearningUnit, LearningModule, CourseStatus, question_types
 )
 from yaksh.forms import (
     UserRegisterForm, UserLoginForm, QuizForm, QuestionForm,
@@ -77,7 +79,7 @@ def is_moderator(user, group_name=MOD_GROUP_NAME):
 def add_as_moderator(users, group_name=MOD_GROUP_NAME):
     """ add users to moderator group """
     try:
-        group = Group.objects.get(name=group_name)
+        Group.objects.get(name=group_name)
     except Group.DoesNotExist:
         raise Http404('The Group {0} does not exist.'.format(group_name))
     for user in users:
@@ -613,6 +615,7 @@ def show_question(request, question, paper, error_message=None,
     course = Course.objects.get(id=course_id)
     module = course.learning_module.get(id=module_id)
     all_modules = course.get_learning_modules()
+    all_question_types = [types[0] for types in question_types]
     context = {
         'question': question,
         'paper': paper,
@@ -627,7 +630,8 @@ def show_question(request, question, paper, error_message=None,
         'can_skip': can_skip,
         'delay_time': delay_time,
         'quiz_type': quiz_type,
-        'all_modules': all_modules
+        'all_modules': all_modules,
+        "question_types": all_question_types
     }
     answers = paper.get_previous_answers(question)
     if answers:
@@ -729,19 +733,17 @@ def check(request, q_id, attempt_num=None, questionpaper_id=None,
             for fname in assignment_filename:
                 fname._name = fname._name.replace(" ", "_")
                 assignment_files = AssignmentUpload.objects.filter(
-                            assignmentQuestion=current_question,
-                            assignmentFile__icontains=fname, user=user,
-                            question_paper=questionpaper_id)
+                    assignmentQuestion=current_question, course_id=course_id,
+                    assignmentFile__icontains=fname, user=user,
+                    question_paper=questionpaper_id)
                 if assignment_files.exists():
-                    assign_file = assignment_files.get(
-                            assignmentQuestion=current_question,
-                            assignmentFile__icontains=fname, user=user,
-                            question_paper=questionpaper_id)
+                    assign_file = assignment_files.first()
                     if os.path.exists(assign_file.assignmentFile.path):
                         os.remove(assign_file.assignmentFile.path)
                     assign_file.delete()
                 AssignmentUpload.objects.create(
                     user=user, assignmentQuestion=current_question,
+                    course_id=course_id,
                     assignmentFile=fname, question_paper_id=questionpaper_id
                 )
             user_answer = 'ASSIGNMENT UPLOADED'
@@ -1890,10 +1892,10 @@ def view_answerpaper(request, questionpaper_id, course_id):
         data = AnswerPaper.objects.get_user_data(user, questionpaper_id,
                                                  course_id)
         has_user_assignment = AssignmentUpload.objects.filter(
-            user=user,
+            user=user, course_id=course.id,
             question_paper_id=questionpaper_id
         ).exists()
-        context = {'data': data, 'quiz': quiz,
+        context = {'data': data, 'quiz': quiz, 'course_id': course.id,
                    "has_user_assignment": has_user_assignment}
         return my_render_to_response(
             request, 'yaksh/view_answerpaper.html', context
@@ -2100,13 +2102,18 @@ def update_email(request):
 
 @login_required
 @email_verified
-def download_assignment_file(request, quiz_id, question_id=None, user_id=None):
+def download_assignment_file(request, quiz_id, course_id,
+                             question_id=None, user_id=None):
     user = request.user
-    if not is_moderator(user):
-        raise Http404("You are not allowed to view this page")
-    qp = QuestionPaper.objects.get(quiz_id=quiz_id)
+    course = get_object_or_404(Course, pk=course_id)
+    if (not course.is_creator(user) and not course.is_teacher(user) and
+            not course.is_student(user)):
+        raise Http404("You are not allowed to download files for {0}".format(
+            course.name)
+        )
+    qp = get_object_or_404(QuestionPaper, quiz_id=quiz_id)
     assignment_files, file_name = AssignmentUpload.objects.get_assignments(
-        qp, question_id, user_id
+        qp, question_id, user_id, course_id
     )
     zipfile_name = string_io()
     zip_file = zipfile.ZipFile(zipfile_name, "w")
@@ -2451,7 +2458,7 @@ def design_module(request, module_id, course_id=None):
     learning_module = LearningModule.objects.get(id=module_id)
     if request.method == "POST":
         if "Add" in request.POST:
-            add_values = request.POST.get("choosen_list").split(',')
+            add_values = request.POST.get("chosen_list").split(',')
             to_add_list = []
             if add_values:
                 ordered_units = learning_module.get_learning_units()
@@ -2888,9 +2895,9 @@ def download_course(request, course_id):
     course_name = course.name.replace(" ", "_")
 
     # Static files required for styling in html template
-    static_files = {"js": ["bootstrap.js", "bootstrap.min.js",
+    static_files = {"js": ["bootstrap.min.js",
                            "jquery-1.9.1.min.js", "video.js"],
-                    "css": ["bootstrap.css", "bootstrap.min.css",
+                    "css": ["bootstrap.min.css",
                             "video-js.css", "offline.css"],
                     "images": ["yaksh_banner.png"]}
     zip_file = course.create_zip(current_dir, static_files)
