@@ -6,7 +6,8 @@ import ruamel.yaml
 from ruamel.yaml.scalarstring import PreservedScalarString
 from ruamel.yaml.comments import CommentedMap
 from random import sample
-from collections import Counter
+from collections import Counter, defaultdict
+
 from django.db import models
 from django.contrib.auth.models import User, Group, Permission
 from django.contrib.contenttypes.models import ContentType
@@ -79,6 +80,17 @@ string_check_type = (
     ("lower", "Case Insensitive"),
     ("exact", "Case Sensitive"),
     )
+
+legend_display_types = {
+        "mcq": {"label": "Objective Type"},
+        "mcc": {"label": "Objective Type"},
+        "code": {"label": "Programming"},
+        "upload": {"label": "Upload"},
+        "integer": {"label": "Objective Type"},
+        "string": {"label": "Objective Type"},
+        "float": {"label": "Objective Type"},
+        "arrange": {"label": "Objective Type"},
+    }
 
 attempts = [(i, i) for i in range(1, 6)]
 attempts.append((-1, 'Infinite'))
@@ -1096,12 +1108,17 @@ class Profile(models.Model):
             os.chmod(user_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
         return user_dir
 
+    def get_moderated_courses(self):
+        return Course.objects.filter(teachers=self.user)
+
     def _toggle_moderator_group(self, group_name):
         group = Group.objects.get(name=group_name)
         if self.is_moderator:
             self.user.groups.add(group)
         else:
             self.user.groups.remove(group)
+            for course in self.get_moderated_courses():
+                course.remove_teachers(self.user)
 
     def save(self, *args, **kwargs):
         if self.pk is not None:
@@ -2085,6 +2102,16 @@ class AnswerPaper(models.Model):
 
     def get_previous_answers(self, question):
         return self.answers.filter(question=question).order_by('-id')
+
+    def get_categorized_question_indices(self):
+        category_question_map = defaultdict(list)
+        for index, question in enumerate(self.get_all_ordered_questions(), 1):
+            question_category = legend_display_types.get(question.type)
+            if question_category:
+                category_question_map[
+                    question_category["label"]
+                ].append(index)
+        return dict(category_question_map)
 
     def validate_answer(self, user_answer, question, json_data=None, uid=None,
                         server_port=SERVER_POOL_PORT):
