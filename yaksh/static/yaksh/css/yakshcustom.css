@@ -1,8 +1,4 @@
-
-@import url('https://fonts.googleapis.com/css?family=Dosis|Exo+2');
-
 /* Navbar */
-
 
 .yakshnav {
 	background-color: #142624;
@@ -137,6 +133,10 @@
 html {
   position: relative;
   min-height: 100%;
+}
+
+.question-nav-bg {
+	background-color:#B4B8BA;
 }
 
 .yaksh {
