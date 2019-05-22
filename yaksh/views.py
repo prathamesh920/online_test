@@ -484,9 +484,17 @@ def start(request, questionpaper_id=None, attempt_num=None, course_id=None,
 
     # unit module prerequiste check
     if learning_module.has_prerequisite():
-        if not learning_module.is_prerequisite_passed(user, course):
+        if not learning_module.is_prerequisite_complete(user, course):
             msg = "You have not completed the module previous to {0}".format(
                 learning_module.name)
+            return course_modules(request, course_id, msg)
+
+    if learning_module.check_prerequisite_passes:
+        if not learning_module.is_prerequisite_passed(user, course):
+            msg = (
+                "You have not successfully passed the module"
+                " previous to {0}".format(learning_module.name)
+            )
             return course_modules(request, course_id, msg)
 
     # is user enrolled in the course
@@ -514,7 +522,7 @@ def start(request, questionpaper_id=None, attempt_num=None, course_id=None,
 
     # prerequisite check and passing criteria for quiz
     if learning_unit.has_prerequisite():
-        if not learning_unit.is_prerequisite_passed(
+        if not learning_unit.is_prerequisite_complete(
                 user, learning_module, course):
             msg = "You have not completed the previous Lesson/Quiz/Exercise"
             if is_moderator(user):
@@ -2216,18 +2224,15 @@ def _read_user_csv(reader, course):
         if users.exists():
             user = users[0]
             if remove.strip().lower() == 'true':
-                if _remove_from_course(user, course):
-                    upload_details.append("{0} -- {1} -- User rejected".format(
-                                          counter, user.username))
-                    continue
+                _remove_from_course(user, course)
+                upload_details.append("{0} -- {1} -- User rejected".format(
+                                      counter, user.username))
             else:
-                if _add_to_course(user, course):
-                    upload_details.append("{0} -- {1} -- User rejected".format(
-                                          counter, user.username))
-            if user not in course.get_enrolled():
-                upload_details.append("{0} -- {1} not added to course".format(
-                    counter, user))
-                continue
+                _add_to_course(user, course)
+                upload_details.append(
+                    "{0} -- {1} -- User Added Successfully".format(
+                        counter, user.username))
+            continue
         user_defaults = {'email': email, 'first_name': first_name,
                          'last_name': last_name}
         user, created = _create_or_update_user(username, password,
@@ -2277,13 +2282,15 @@ def _get_csv_values(row, fields):
 def _remove_from_course(user, course):
     if user in course.get_enrolled():
         course.reject(True, user)
-        return True
+    else:
+        course.rejected.add(user)
 
 
 def _add_to_course(user, course):
     if user in course.get_rejected():
         course.enroll(True, user)
-        return True
+    else:
+        course.students.add(user)
 
 
 def _create_or_update_user(username, password, defaults):
@@ -2442,9 +2449,16 @@ def show_lesson(request, lesson_id, module_id, course_id):
         msg = "{0} is not active".format(learn_unit.lesson.name)
         return view_module(request, module_id, course_id, msg)
     if learn_module.has_prerequisite():
-        if not learn_module.is_prerequisite_passed(user, course):
+        if not learn_module.is_prerequisite_complete(user, course):
             msg = "You have not completed the module previous to {0}".format(
                 learn_module.name)
+            return view_module(request, module_id, course_id, msg)
+    if learn_module.check_prerequisite_passes:
+        if not learn_module.is_prerequisite_passed(user, course):
+            msg = (
+                "You have not successfully passed the module"
+                " previous to {0}".format(learn_module.name)
+            )
             return view_module(request, module_id, course_id, msg)
 
     # update course status with current unit
@@ -2452,7 +2466,7 @@ def show_lesson(request, lesson_id, module_id, course_id):
 
     all_modules = course.get_learning_modules()
     if learn_unit.has_prerequisite():
-        if not learn_unit.is_prerequisite_passed(user, learn_module, course):
+        if not learn_unit.is_prerequisite_complete(user, learn_module, course):
             msg = "You have not completed previous Lesson/Quiz/Exercise"
             return view_module(request, learn_module.id, course_id, msg=msg)
     context = {'lesson': learn_unit.lesson, 'user': user,
@@ -2714,11 +2728,18 @@ def design_course(request, course_id):
             if remove_values:
                 course.learning_module.remove(*remove_values)
 
-        if "Change_prerequisite" in request.POST:
+        if "change_prerequisite_completion" in request.POST:
             unit_list = request.POST.getlist("check_prereq")
             for unit in unit_list:
                 learning_module = course.learning_module.get(id=unit)
                 learning_module.toggle_check_prerequisite()
+                learning_module.save()
+
+        if "change_prerequisite_passing" in request.POST:
+            unit_list = request.POST.getlist("check_prereq_passes")
+            for unit in unit_list:
+                learning_module = course.learning_module.get(id=unit)
+                learning_module.toggle_check_prerequisite_passes()
                 learning_module.save()
 
     added_learning_modules = course.get_learning_modules()
@@ -2752,9 +2773,17 @@ def view_module(request, module_id, course_id, msg=None):
         return course_modules(request, course_id, msg)
     all_modules = course.get_learning_modules()
     if learning_module.has_prerequisite():
-        if not learning_module.is_prerequisite_passed(user, course):
+        if not learning_module.is_prerequisite_complete(user, course):
             msg = "You have not completed the module previous to {0}".format(
                 learning_module.name)
+            return course_modules(request, course_id, msg)
+
+    if learning_module.check_prerequisite_passes:
+        if not learning_module.is_prerequisite_passed(user, course):
+            msg = (
+                "You have not successfully passed the module"
+                " previous to {0}".format(learning_module.name)
+            )
             return course_modules(request, course_id, msg)
 
     learning_units = learning_module.get_learning_units()
@@ -2912,7 +2941,7 @@ def download_course(request, course_id):
 
     # Static files required for styling in html template
     static_files = {"js": ["bootstrap.min.js",
-                           "jquery-1.9.1.min.js", "video.js"],
+                           "jquery-3.3.1.min.js", "video.js"],
                     "css": ["bootstrap.min.css",
                             "video-js.css", "offline.css"],
                     "images": ["yaksh_banner.png"]}
