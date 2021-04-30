@@ -33,6 +33,7 @@ try:
 except ImportError:
     from io import BytesIO as string_io
 import re
+import requests
 # Local imports.
 from online_test.celery_settings import app
 from yaksh.code_server import get_result as get_result_from_code_server
@@ -95,6 +96,16 @@ def is_moderator(user, group_name=MOD_GROUP_NAME):
         return False
 
 
+def _is_captcha_valid(response):
+    url = 'https://www.google.com/recaptcha/api/siteverify'
+    data = {
+        'secret': settings.GOOGLE_RECAPTCHA_SECRET_KEY,
+        'response': response
+    }
+    g_response = requests.post(url, data=data)
+    result = g_response.json()
+    return result['success']
+
 def add_as_moderator(users, group_name=MOD_GROUP_NAME):
     """ add users to moderator group """
     try:
@@ -143,9 +154,16 @@ def user_register(request):
     if user.is_authenticated:
         return my_redirect("/exam/quizzes/")
     context = {}
+    context['site_key'] = settings.GOOGLE_RECAPTCHA_SITE_KEY
     if request.method == "POST":
         form = UserRegisterForm(request.POST)
         if form.is_valid():
+            recaptcha_response = request.POST.get('g-recaptcha-response')
+            if not _is_captcha_valid(recaptcha_response):
+                context['form'] = form
+                context['captcha_error'] = 'Invalid CAPTCHA! Try Again.'
+                return my_render_to_response(request,
+                                             'yaksh/register.html', context)
             u_name, pwd, user_email, key = form.save()
             new_user = authenticate(username=u_name, password=pwd)
             login(request, new_user)
@@ -158,14 +176,14 @@ def user_register(request):
                 )
             return index(request)
         else:
+            context['form'] = form
             return my_render_to_response(
-                request, 'yaksh/register.html', {'form': form}
+                request, 'yaksh/register.html', context
             )
     else:
         form = UserRegisterForm()
-        return my_render_to_response(
-            request, 'yaksh/register.html', {'form': form}
-        )
+        context['form'] = form
+        return my_render_to_response(request, 'yaksh/register.html', context)
 
 
 def user_logout(request):
@@ -473,19 +491,26 @@ def user_login(request):
         return index(request)
 
     next_url = request.GET.get('next')
+    context['site_key'] = settings.GOOGLE_RECAPTCHA_SITE_KEY
 
     if request.method == "POST":
         form = UserLoginForm(request.POST)
         if form.is_valid():
-            user = form.cleaned_data
-            login(request, user)
-            return index(request, next_url)
+            recaptcha_response = request.POST.get('g-recaptcha-response')
+            if _is_captcha_valid(recaptcha_response):
+                user = form.cleaned_data
+                login(request, user)
+                return index(request, next_url)
+            else:
+                context['form'] = form
+                context['captcha_error'] = 'Invalid CAPTCHA! Try Again.'
+                return my_render_to_response(request, 'yaksh/login.html', context)
         else:
-            context = {"form": form}
+            context['form'] = form
 
     else:
         form = UserLoginForm()
-        context = {"form": form}
+        context['form'] = form
 
     return my_render_to_response(request, 'yaksh/login.html', context)
 

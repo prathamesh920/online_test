@@ -276,3 +276,5 @@ if USE_AWS:
     AWS_PUBLIC_MEDIA_LOCATION = 'media/public'
     DEFAULT_FILE_STORAGE = 'yaksh.storage_backends.PublicMediaStorage'
 
+GOOGLE_RECAPTCHA_SITE_KEY = config('SITE_KEY', default='')
+GOOGLE_RECAPTCHA_SECRET_KEY = config('CAP_SECRET_KEY', default='')
