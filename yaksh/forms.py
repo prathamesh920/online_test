@@ -5,8 +5,9 @@ from yaksh.models import (
     Topic, SEB
 )
 from grades.models import GradingSystem
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import PasswordResetForm
 from django.conf import settings
 from django.utils import timezone
 from django.template.defaultfilters import filesizeformat
@@ -798,3 +799,13 @@ class VideoQuizForm(forms.ModelForm):
                     "Marker time should be in the format hh:mm:ss"
                 )
         return timer
+
+
+class GenericPasswordResetForm(PasswordResetForm):
+    def get_users(self, email):
+        UserModel = get_user_model()
+        active_users = UserModel._default_manager.filter(**{
+            '%s__iexact' % UserModel.get_email_field_name(): email,
+            'is_active': True,
+        })
+        return (user for user in active_users)

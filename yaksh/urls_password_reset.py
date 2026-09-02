@@ -1,20 +1,37 @@
-from django.conf.urls import url
-from django.contrib.auth.views import password_reset, password_reset_confirm,\
-        password_reset_done, password_reset_complete, password_change,\
-        password_change_done
+from django.urls import path
+from django.contrib.auth.views import (
+    PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView,
+    PasswordResetCompleteView, PasswordChangeView, PasswordChangeDoneView,
+)
+from .forms import GenericPasswordResetForm
 
 urlpatterns = [
-    url(r'^forgotpassword/$', password_reset,
-        name="password_reset"),
-    url(r'^password_reset/(?P<uidb64>[0-9A-Za-z]+)-(?P<token>.+)/$',
-        password_reset_confirm,
-        name='password_reset_confirm'),
-    url(r'^password_reset/mail_sent/$', password_reset_done,
-        name='password_reset_done'),
-    url(r'^password_reset/complete/$', password_reset_complete,
-        name='password_reset_complete'),
-    url(r'^changepassword/$', password_change,
-        name='password_change'),
-    url(r'^password_change/done/$', password_change_done,
-        name='password_change_done'),
+    path('forgotpassword/',
+         PasswordResetView.as_view(
+             form_class=GenericPasswordResetForm,
+             success_url='/password_reset/mail_sent/',
+             email_template_name='registration/password_reset_email.html',
+         ),
+         name='password_reset'),
+
+    path('password_reset/<uidb64>/<token>/',
+         PasswordResetConfirmView.as_view(
+             success_url='/password_reset/complete/'
+         ),
+         name='password_reset_confirm'),
+
+    path('password_reset/mail_sent/', PasswordResetDoneView.as_view(),
+         name='password_reset_done'),
+
+    path('password_reset/complete/', PasswordResetCompleteView.as_view(),
+         name='password_reset_complete'),
+
+    path('changepassword/',
+         PasswordChangeView.as_view(
+             success_url='/password_change/done/'
+         ),
+         name='password_change'),
+
+    path('password_change/done/', PasswordChangeDoneView.as_view(),
+         name='password_change_done'),
 ]
