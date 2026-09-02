@@ -4599,7 +4599,7 @@ class TestPasswordReset(TestCase):
         # Then
         self.assertEqual(response.context['email'], self.user1.email)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, '/exam/reset/password_reset/done/')
+        self.assertRedirects(response, '/password_reset/mail_sent/')
 
     def test_password_change_post(self):
         """
@@ -4625,7 +4625,7 @@ class TestPasswordReset(TestCase):
         self.assertIsNotNone(authenticate(username='demo_user1',
                                           password='new_demo1_pass'))
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, '/exam/reset/password_change/done/')
+        self.assertRedirects(response, '/password_change/done/')
 
         # Finally
         self.client.logout()
@@ -9000,3 +9000,55 @@ class TestLessonContents(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get('Content-Disposition'),
                          'attachment; filename="sample_lesson_toc.yaml"')
+
+
+class TestSocialPasswordReset(TestCase):
+    def setUp(self):
+        self.standard_user = User.objects.create_user(username='std_user',
+            email='stduser@xyz.com', password='stduser123')
+
+        self.social_user = User.objects.create_user(username='social_user',
+            email='social@xyz.com')
+        self.social_user.set_unusable_password()
+        self.social_user.save()
+
+        self.inactive_user = User.objects.create_user(username='inactive_user',
+            email='inactive@xyz.com', is_active=False)
+
+        self.url = reverse('password_reset')
+
+    def test_standard_user_receives_reset_email(self):
+        # Given
+        std_user = self.standard_user
+
+        # When
+        response = self.client.post(self.url, {'email': std_user.email})
+
+        # Then
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(std_user.email, mail.outbox[0].to)
+
+    def test_social_user_receives_reset_email(self):
+        # Given
+        social_user = self.social_user
+        self.assertFalse(social_user.has_usable_password())
+
+        # When
+        response = self.client.post(self.url, {'email': social_user.email})
+
+        # Then
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(social_user.email, mail.outbox[0].to)
+
+    def test_inactive_user_does_not_receive_reset_email(self):
+        # Given
+        inactive_user = self.inactive_user
+
+        # When
+        response = self.client.post(self.url, {'email': inactive_user.email})
+
+        # Then
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)

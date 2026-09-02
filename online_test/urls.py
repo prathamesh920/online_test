@@ -13,7 +13,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$', views.index, name='index'),
     url(r'^exam/', include(('yaksh.urls', 'yaksh'))),
-    url(r'^exam/reset/', include('django.contrib.auth.urls')),
+    url(r'', include('yaksh.urls_password_reset')),
     url(r'^', include('social_django.urls', namespace='social')),
     url(r'^grades/', include(('grades.urls', 'grades'))),
     url(r'^api/', include('api.urls', namespace='api')),
