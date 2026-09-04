@@ -6530,6 +6530,15 @@ class TestLearningModule(TestCase):
             creator=self.user
         )
 
+        self.quiz_no_question_paper = Quiz.objects.create(
+            start_date_time=datetime(2015, 10, 9, 10, 8, 15, 0, tzone),
+            end_date_time=datetime(2199, 10, 9, 10, 8, 15, 0, tzone),
+            duration=30, active=True, instructions="Demo Instructions",
+            attempts_allowed=-1, time_between_attempts=0,
+            description='demo quiz', pass_criteria=40,
+            creator=self.user
+        )
+
         self.question_paper = QuestionPaper.objects.create(
             quiz=self.quiz,
             total_marks=5.0, fixed_question_order=str(self.question.id)
@@ -6546,12 +6555,15 @@ class TestLearningModule(TestCase):
         # create lesson learning unit
         self.learning_unit1 = LearningUnit.objects.create(
             order=1, type="lesson", lesson=self.lesson)
+        self.learning_unit2 = LearningUnit.objects.create(
+            order=2, type="quiz", quiz=self.quiz_no_question_paper)
         # create learning module
         self.learning_module = LearningModule.objects.create(
             order=0, name="test module", description="module",
             check_prerequisite=False, creator=self.user)
         self.learning_module.learning_unit.add(self.learning_unit)
         self.learning_module.learning_unit.add(self.learning_unit1)
+        self.learning_module.learning_unit.add(self.learning_unit2)
         self.learning_module1 = LearningModule.objects.create(
             order=0, name="my module", description="my description",
             check_prerequisite=False, creator=self.user)
@@ -6566,8 +6578,10 @@ class TestLearningModule(TestCase):
         self.student.delete()
         self.teacher.delete()
         self.quiz.delete()
+        self.quiz_no_question_paper.delete()
         self.course.delete()
         self.learning_unit.delete()
+        self.learning_unit2.delete()
         self.learning_module.delete()
         self.mod_group.delete()
 
@@ -6828,10 +6842,23 @@ class TestLearningModule(TestCase):
                             "current_unit_id": self.learning_unit1.id}),
             follow=True)
         self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response,
+            '/exam/quizzes/view_module/{0}/{1}/'.format(
+                self.learning_module.id, self.course.id
+            ),
+        )
+
+        # Go to next module from last unit of previous unit
+        response = self.client.get(
+            reverse('yaksh:next_unit',
+                    kwargs={"module_id": self.learning_module.id,
+                            "course_id": self.course.id,
+                            "current_unit_id": self.learning_unit2.id}),
+            follow=True)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["state"], "module")
         self.assertEqual(response.context["learning_module"].id,
                          self.learning_module1.id)
-
 
 class TestLessons(TestCase):
     def setUp(self):
