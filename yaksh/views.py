@@ -3084,8 +3084,15 @@ def get_next_unit(request, course_id, module_id, current_unit_id=None,
                 next_module.id, course.id))
 
     if next_unit.type == "quiz":
-        return my_redirect("/exam/start/{0}/{1}/{2}".format(
-            next_unit.quiz.questionpaper_set.get().id, module_id, course_id))
+        question_paper = next_unit.quiz.questionpaper_set.first()
+        if not question_paper:
+            messages.warning(request, 'The quiz is currently not available')
+            return my_redirect('/exam/quizzes/view_module/{0}/{1}/'.format(
+                module_id, course_id)
+            )
+        else:
+            return my_redirect("/exam/start/{0}/{1}/{2}".format(
+                question_paper.id, module_id, course_id))
     else:
         return my_redirect("/exam/show_lesson/{0}/{1}/{2}".format(
             next_unit.lesson.id, module_id, course_id))
